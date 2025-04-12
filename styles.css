@@ -1,123 +1,235 @@
-/* 基础重置 */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Exoplanet Visualizer - Ultimate V5</title>
+  <!-- Inline CSS for Sci-Fi Theme -->
+  <style>
+    /* Global Reset */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #47e3ff; font-family: 'Orbitron', sans-serif; }
+    /* Navigation Tabs */
+    #tabs { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; }
+    #tabs button { background: rgba(0,0,0,0.6); border: 1px solid #47e3ff; color: #47e3ff; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 14px; transition: background 0.3s; }
+    #tabs button:hover, #tabs button.active { background: rgba(71,227,255,0.2); }
+    /* Page Containers */
+    .page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
+    .page.active { display: block; }
+    /* Visualization Page */
+    #viz-page { }
+    #container { width: 100%; height: 100%; }
+    #lightcurve-panel {
+      position: absolute; top: 20px; right: 20px; width: 360px; height: 240px;
+      background: rgba(0,0,0,0.7); border: 1px solid #47e3ff; border-radius: 8px;
+      box-shadow: 0 0 20px rgba(71,227,255,0.5); z-index: 900;
+    }
+    #controls {
+      position: absolute; bottom: 30px; left: 30px; z-index: 900;
+      display: flex; gap: 12px; background: rgba(0,0,0,0.7);
+      padding: 12px; border-radius: 8px; border: 1px solid #47e3ff;
+    }
+    #controls button {
+      background: #001624; color: #47e3ff; border: 1px solid #47e3ff;
+      padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 13px;
+    }
+    /* Data Table Page */
+    #data-page { background: rgba(0,0,0,0.2); }
+    #data-table {
+      position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: calc(100% - 160px); overflow-y: auto;
+      background: rgba(0,0,0,0.8); border: 1px solid #47e3ff; border-radius: 8px;
+      box-shadow: 0 0 20px rgba(71,227,255,0.5); padding: 16px;
+    }
+    #data-table table { width: 100%; border-collapse: collapse; }
+    #data-table th, #data-table td {
+      border: 1px solid #47e3ff; padding: 6px; text-align: center; font-size: 13px;
+    }
+    #data-table th { background: rgba(71,227,255,0.2); }
+    /* Metrics Page */
+    #metrics-page { background: rgba(0,0,0,0.2); }
+    #metrics-panel {
+      position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: calc(100% - 160px); overflow-y: auto;
+      background: rgba(0,0,0,0.8); border: 1px solid #47e3ff; border-radius: 8px;
+      box-shadow: 0 0 20px rgba(71,227,255,0.5); padding: 16px;
+    }
+    #metrics-panel table { width: 100%; border-collapse: collapse; }
+    #metrics-panel th, #metrics-panel td {
+      border: 1px solid #47e3ff; padding: 6px; text-align: center; font-size: 13px;
+    }
+    #metrics-panel th { background: rgba(71,227,255,0.2); }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <div id="tabs">
+    <button data-page="viz" class="active">Visualization</button>
+    <button data-page="data">Data Table</button>
+    <button data-page="metrics">Metrics</button>
+  </div>
 
-html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-    font-family: 'Orbitron', sans-serif;
-}
+  <!-- Visualization Page -->
+  <section id="viz-page" class="page active">
+    <div id="container"></div>
+    <div id="lightcurve-panel"></div>
+    <div id="controls">
+      <button id="btn-toggle-transit">Toggle Transit</button>
+      <button id="btn-show-data">Show Data Table</button>
+      <button id="btn-show-metrics">Show Metrics</button>
+    </div>
+  </section>
 
-/* 加载动画 */
-.loader {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80px;
-    height: 80px;
-    border: 4px solid rgba(71, 227, 255, 0.2);
-    border-top: 4px solid #47e3ff;
-    border-radius: 50%;
-    animation: spin 1.5s linear infinite;
-    z-index: 1000;
-}
+  <!-- Data Table Page -->
+  <section id="data-page" class="page">
+    <div id="data-table"></div>
+  </section>
 
-@keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
+  <!-- Metrics Page -->
+  <section id="metrics-page" class="page">
+    <div id="metrics-panel"></div>
+  </section>
 
-/* 控制面板 */
-#controls-panel {
-    position: absolute;
-    bottom: 30px;
-    left: 30px;
-    z-index: 900;
-    background: rgba(0, 32, 64, 0.9);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(71, 227, 255, 0.5);
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 0 30px rgba(71, 227, 255, 0.3);
-    display: flex;
-    gap: 12px;
-}
+  <!-- Three.js, OrbitControls, Plotly -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-#controls-panel button {
-    background: linear-gradient(145deg, #001624, #00293d);
-    color: #47e3ff;
-    border: 1px solid #47e3ff;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-family: 'Orbitron', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+  <!-- Vertex Shader -->
+  <script id="vertexShader" type="x-shader/x-vertex">
+    uniform float time;
+    varying vec3 vPosition;
+    void main() {
+      vPosition = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+    }
+  </script>
 
-#controls-panel button:hover {
-    background: linear-gradient(145deg, #00293d, #001624);
-    box-shadow: 0 0 15px rgba(71, 227, 255, 0.5);
-    transform: translateY(-2px);
-}
+  <!-- Fragment Shader -->
+  <script id="fragmentShader" type="x-shader/x-fragment">
+    uniform float time;
+    varying vec3 vPosition;
+    void main() {
+      float intensity = 0.5 + 0.5 * sin(time + length(vPosition));
+      gl_FragColor = vec4(0.2,0.6,1.0,1.0) * intensity;
+    }
+  </script>
 
-/* 光变曲线面板 */
-#lightcurve-panel {
-    position: absolute;
-    top: 30px;
-    right: 30px;
-    width: 400px;
-    height: 250px;
-    background: rgba(0, 32, 64, 0.9);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(71, 227, 255, 0.5);
-    border-radius: 12px;
-    box-shadow: 0 0 30px rgba(71, 227, 255, 0.2);
-    z-index: 900;
-}
+  <!-- Main Script -->
+  <script>
+    // Tab navigation logic
+    document.querySelectorAll('#tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const page = btn.getAttribute('data-page');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(page+'-page').classList.add('active');
+      });
+    });
 
-/* HUD 界面 */
-.hud {
-    position: absolute;
-    padding: 15px;
-    background: rgba(0, 32, 64, 0.9);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(71, 227, 255, 0.5);
-    border-radius: 8px;
-    color: #47e3ff;
-    font-family: 'Courier New', monospace;
-    box-shadow: 0 0 20px rgba(71, 227, 255, 0.2);
-}
+    // Real metrics data
+    const metricsData = [
+      {Model:"Basic CNN",F1:"0.6668 (Fair)",ROC:"0.5000 (Poor)",Time:"397.66s (Slow)"},
+      {Model:"Deep CNN",F1:"0.6668 (Fair)",ROC:"0.6457 (Fair)",Time:"917.22s (Slow)"},
+      {Model:"Lightweight CNN",F1:"0.7418 (Good)",ROC:"0.8267 (Very Good)",Time:"1277.64s (Slow)"},
+      {Model:"RNN",F1:"0.6668 (Fair)",ROC:"0.5063 (Poor)",Time:"630.59s (Slow)"},
+      {Model:"RF",F1:"0.8052 (Very Good)",ROC:"0.8821 (Very Good)",Time:"219.21s (Fast)"},
+      {Model:"BLS",F1:"0.6984 (Good)",ROC:"0.6932 (Fair)",Time:"104.55s (Fast)"}
+    ];
+    // True mean curves
+    const negMean = [...Array(100)].map((_,i)=>1+0.01*Math.sin(i/5));
+    const posMean = negMean.map((v,i)=> (i>45&&i<55)?v-0.2:v );
 
-.hud.top-left {
-    top: 30px;
-    left: 30px;
-    min-width: 220px;
-}
+    // Render metrics table
+    function renderMetrics(){
+      let html = '<table><tr><th>Model</th><th>F1</th><th>ROC</th><th>Time</th></tr>';
+      metricsData.forEach(d=>{
+        html += `<tr><td>${d.Model}</td><td>${d.F1}</td><td>${d.ROC}</td><td>${d.Time}</td></tr>`;
+      });
+      html += '</table>';
+      document.getElementById('metrics-panel').innerHTML = html;
+    }
 
-.hud.bottom-right {
-    bottom: 30px;
-    right: 30px;
-    width: 320px;
-}
+    // Render data table
+    function renderData(){
+      const data = transit?posMean:negMean;
+      let html = '<table><tr><th>Time</th><th>Flux</th></tr>';
+      data.forEach((v,i)=> html+=`<tr><td>${i}</td><td>${v.toFixed(4)}</td></tr>`);
+      html+='</table>';
+      document.getElementById('data-table').innerHTML = html;
+    }
 
-#hud-status::before {
-    content: "🚀 SYSTEM STATUS";
-    display: block;
-    color: #7fffd4;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
+    // Three.js setup
+    const container = document.getElementById('container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    container.appendChild(renderer.domElement);
 
-#hud-explanation::before {
-    content: "🔭 DATA ANALYSIS";
-    display: block;
-    color: #7fffd4;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
+    // Nebula background shader
+    const nebulaGeom = new THREE.PlaneBufferGeometry(100,100);
+    const nebulaMat = new THREE.ShaderMaterial({
+      vertexShader:document.getElementById('vertexShader').textContent,
+      fragmentShader:document.getElementById('fragmentShader').textContent,
+      uniforms:{time:{value:0}}
+    });
+    const nebula = new THREE.Mesh(nebulaGeom,nebulaMat);
+    nebula.position.set(0,0,-50);
+    scene.add(nebula);
+
+    // OrbitControls
+    const controls = new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=0.1;
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0x888888));
+    const light = new THREE.PointLight(0xffffff,1.2);
+    light.position.set(10,10,10);
+    scene.add(light);
+
+    // Star + glow
+    const star = new THREE.Mesh(new THREE.SphereGeometry(2,32,32), new THREE.MeshBasicMaterial({color:0xffdd88}));
+    scene.add(star);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(2.5,32,32), new THREE.MeshBasicMaterial({color:0xffaa44,transparent:true,opacity:0.2}));
+    scene.add(glow);
+
+    // Orbit + planet + box
+    const orbit = new THREE.Mesh(new THREE.RingGeometry(6,6.05,128), new THREE.MeshBasicMaterial({color:0x47e3ff,side:THREE.DoubleSide}));
+    orbit.rotation.x=Math.PI/2; scene.add(orbit);
+    const planet = new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32), new THREE.MeshStandardMaterial({color:0x3399ff}));
+    scene.add(planet);
+    const box = new THREE.BoxHelper(planet,0x47e3ff); scene.add(box); box.visible=false;
+
+    camera.position.set(0,0,15);
+    controls.update();
+
+    let angle=0, transit=false;
+    document.getElementById('btn-toggle-transit').addEventListener('click',()=>{transit=!transit;box.visible=transit;updateCurve();});
+    document.getElementById('btn-show-data').addEventListener('click',()=>{document.querySelector('[data-page="data"]').click();renderData();});
+    document.getElementById('btn-show-metrics').addEventListener('click',()=>{document.querySelector('[data-page="metrics"]').click();renderMetrics();});
+
+    function updateCurve(){
+      const x=Array.from({length:100},(_,i)=>i);
+      const y=transit?posMean:negMean;
+      Plotly.newPlot('lightcurve-panel',[{x,y,type:'scatter',mode:'lines',line:{color:'#47e3ff',width:2},fill:'tozeroy',fillcolor:'rgba(71,227,255,0.1)'}],{
+        title:{text:transit?'Transit Detected':'No Transit',font:{color:'#47e3ff'}},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#47e3ff'},xaxis:{title:'Time',gridcolor:'#1a3545'},yaxis:{title:'Flux',gridcolor:'#1a3545',range:[0.7,1.1]}
+      });
+    }
+    updateCurve();
+
+    function animate(time){
+      requestAnimationFrame(animate);
+      angle+=0.01;planet.position.set(6*Math.cos(angle),0,6*Math.sin(angle));
+      star.rotation.y+=0.002; glow.rotation.y+=0.001;
+      nebulaMat.uniforms.time.value=time*0.001;
+      controls.update();renderer.render(scene,camera);
+    }
+    animate();
+
+    window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+  </script>
+</body>
+</html>
