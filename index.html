@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- This is a simplified version to fit within the code block. Full content will be restored later. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exoplanet Detection System</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; background: black; }
+    #container { position: relative; width: 100%; height: 100vh; }
+    .subtitle { position: absolute; color: #47e3ff; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px rgba(71, 227, 255, 0.7); pointer-events: none; }
+    #transit-detected { top: 20px; left: 50px; font-size: 32px; }
+    #ai-prediction { bottom: 30px; left: 50px; }
+    #ui-panel { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 300px; pointer-events: none; }
+    #light-curve { width: 100%; height: 200px; background-color: rgba(0, 18, 36, 0.7); border: 2px solid #47e3ff; border-radius: 5px; box-shadow: 0 0 15px rgba(71, 227, 255, 0.5); }
+    #controls { position: absolute; bottom: 20px; right: 20px; background-color: rgba(0, 18, 36, 0.7); padding: 10px; border-radius: 5px; border: 1px solid #47e3ff; color: #47e3ff; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="transit-detected" class="subtitle">TRANSIT DETECTED</div>
+    <div id="ai-prediction" class="subtitle">AI MODEL LOCK-ON | FLUX DROP</div>
+    <div id="ui-panel"><div id="light-curve"></div></div>
+    <div id="controls">Mouse: Rotate | Scroll: Zoom | Right-click: Pan</div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.16.1/plotly.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
