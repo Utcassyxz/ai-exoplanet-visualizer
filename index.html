@@ -1,297 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Exoplanet Detector - Dual Scenario</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    /* =========================== 全局设置 =========================== */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      background: #000;
-      font-family: "Arial", sans-serif;
-      color: #47e3ff;
-      overflow: hidden;
-    }
-    /* =========================== 背景与容器 =========================== */
-    #container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: url('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg') no-repeat center center;
-      background-size: cover;
-    }
-    /* =========================== 控制面板 =========================== */
-    #controls-panel {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      z-index: 100;
-      background: rgba(0, 0, 0, 0.8);
-      border: 2px solid #47e3ff;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 0 20px rgba(71, 227, 255, 0.7);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    #controls-panel button {
-      background: #001624;
-      color: #47e3ff;
-      border: 1px solid #47e3ff;
-      padding: 8px 16px;
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.3s ease, color 0.3s ease;
-    }
-    #controls-panel button:hover {
-      background: #47e3ff;
-      color: #000;
-    }
-    /* =========================== 光变曲线面板 =========================== */
-    #lightcurve-panel {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      width: 350px;
-      height: 220px;
-      background: rgba(0,0,0,0.8);
-      border: 2px solid #47e3ff;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(71,227,255,0.7);
-      z-index: 100;
-      padding: 10px;
-    }
-    /* =========================== HUD 说明文字 =========================== */
-    .hud {
-      position: absolute;
-      font-size: 20px;
-      color: #47e3ff;
-      text-shadow: 0 0 5px rgba(71,227,255,0.8);
-      z-index: 150;
-      background: rgba(0,0,0,0.6);
-      padding: 8px 12px;
-      border: 1px solid #47e3ff;
-      border-radius: 4px;
-    }
-    .hud.top-left { top: 20px; left: 20px; }
-    .hud.top-right { top: 20px; right: 20px; }
-    /* =========================== 占位注释 =========================== */
-    /* 以下为占位注释，确保整体代码长度超过400行 */
-    body::before {
-      content: "====================================================================";
-      display: block;
-      text-align: center;
-      color: #47e3ff;
-      margin: 10px 0;
-      font-size: 12px;
-    }
-    body::after {
-      content: "====================================================================";
-      display: block;
-      text-align: center;
-      color: #47e3ff;
-      margin: 10px 0;
-      font-size: 12px;
-    }
-    .placeholder-line { font-size: 12px; color: #47e3ff; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Exoplanet Visualizer - PRO EDITION</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- 后期处理依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 </head>
 <body>
-  <div id="container"></div>
-  <div id="lightcurve-panel"></div>
-  <div id="controls-panel">
-    <button onclick="setView('front')">Front</button>
-    <button onclick="setView('top')">Top</button>
-    <button onclick="setView('side')">Side</button>
-    <button onclick="toggleScenario()">Toggle Scenario</button>
-  </div>
-  <div class="hud top-left" id="hud-status">Status: Initializing...</div>
-  <!-- 占位，多行说明 -->
-  <div class="placeholder-line">Placeholder 1</div>
-  <div class="placeholder-line">Placeholder 2</div>
-  <div class="placeholder-line">Placeholder 3</div>
-  <div class="placeholder-line">Placeholder 4</div>
-  <div class="placeholder-line">Placeholder 5</div>
-  <div class="placeholder-line">Placeholder 6</div>
-  <div class="placeholder-line">Placeholder 7</div>
-  <div class="placeholder-line">Placeholder 8</div>
-  <div class="placeholder-line">Placeholder 9</div>
-  <div class="placeholder-line">Placeholder 10</div>
-  <!-- 省略更多占位行... -->
+    <div class="loader"></div>
+    <div id="container"></div>
+    <div id="lightcurve-panel"></div>
+    
+    <!-- 控制面板 -->
+    <div id="controls-panel">
+        <button onclick="setView('front')">🛰 Front View</button>
+        <button onclick="setView('top')">🛸 Top View</button>
+        <button onclick="setView('side')">🌌 Side View</button>
+        <button onclick="toggleScenario()">🔄 Toggle Transit</button>
+    </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script>
-    /**
-     * 本模块实现双情景下的展示：
-     * 情景1：有 exoplanet 被检测到（Transit 状态，行星显示检测框，光变曲线有明显下跌）。
-     * 情景2：无 exoplanet（No Transit 状态，检测框隐藏，光变曲线平稳）。
-     */
+    <!-- HUD 界面 -->
+    <div class="hud top-left" id="hud-status"></div>
+    <div class="hud bottom-right" id="hud-explanation"></div>
 
-    // ----- 全局变量与状态 -----
-    var container = document.getElementById('container');
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000);
-    container.appendChild(renderer.domElement);
-
-    // OrbitControls：允许用户手动控制摄像机
-    var controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.enablePan = true;
-    controls.minDistance = 5;
-    controls.maxDistance = 50;
-
-    // 固定背景贴图（科技风格）
-    new THREE.TextureLoader().load(
-      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg',
-      function(tex){ scene.background = tex; }
-    );
-
-    // 添加环境光和点光源
-    scene.add(new THREE.AmbientLight(0x888888));
-    var pointLight = new THREE.PointLight(0xffffff, 1.2);
-    pointLight.position.set(10, 10, 10);
-    scene.add(pointLight);
-
-    // 创建主要模型：恒星、光晕、轨道、行星、检测框
-    var star = new THREE.Mesh(
-      new THREE.SphereGeometry(2, 32, 32),
-      new THREE.MeshBasicMaterial({ color: 0xffdd88 })
-    );
-    scene.add(star);
-    var glow = new THREE.Mesh(
-      new THREE.SphereGeometry(2.5, 32, 32),
-      new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.25 })
-    );
-    scene.add(glow);
-    var orbit = new THREE.Mesh(
-      new THREE.RingGeometry(6, 6.1, 128),
-      new THREE.MeshBasicMaterial({ color: 0x47e3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
-    );
-    orbit.rotation.x = Math.PI/2;
-    scene.add(orbit);
-    var planet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0x3399ff })
-    );
-    scene.add(planet);
-    var detectionBox = new THREE.BoxHelper(planet, 0x47e3ff);
-    detectionBox.visible = false;
-    scene.add(detectionBox);
-
-    // 初始状态：无 Transit（无行星检测）
-    var transit = false;
-    var hudStatus = document.getElementById('hud-status');
-    hudStatus.textContent = "Status: No Transit Detected";
-
-    // ----- 数据：模拟光变曲线数据（固定示例数据，可替换为真实数据） -----
-    var negMean = [];
-    var posMean = [];
-    for(var i=0;i<100;i++){
-      // 负样本：随机噪声波动
-      negMean.push(1.0 + (Math.random()*0.01 - 0.005));
-      // 正样本：中间部分下跌
-      if(i>40 && i<60){
-        var dip = 0.2 * (1 - Math.abs((i-50)/10));
-        posMean.push(1.0 - dip + (Math.random()*0.005));
-      } else {
-        posMean.push(1.0 + (Math.random()*0.01 - 0.005));
-      }
-    }
-
-    // Plotly 绘制光变曲线
-    function updateLightCurve() {
-      var x = Array.from({length:100}, (_,i)=>i);
-      var y = transit ? posMean : negMean;
-      Plotly.newPlot("lightcurve-panel", [{
-        x: x,
-        y: y,
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: '#47e3ff', width: 2 },
-        fill: 'tozeroy',
-        fillcolor: 'rgba(71,227,255,0.1)'
-      }], {
-        title: { text: transit ? "Transit Detected" : "No Transit", font: { color: '#47e3ff' } },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        font: { color: '#47e3ff' },
-        xaxis: { title: 'Time', gridcolor: '#1a3545' },
-        yaxis: { title: 'Flux', gridcolor: '#1a3545', range: [0.75, 1.05] }
-      });
-    }
-    updateLightCurve();
-
-    // ----- 情景切换：有 Transit / 无 Transit  -----
-    function toggleScenario() {
-      transit = !transit;
-      detectionBox.visible = transit;
-      updateLightCurve();
-      hudStatus.textContent = transit ? "Status: Transit Detected" : "Status: No Transit Detected";
-    }
-    // 为 toggleScenario 添加全局接口
-    window.toggleScenario = toggleScenario;
-
-    // ----- 摄像机手动控制与自动旋转 -----
-    // 用户可通过 OrbitControls 手动操作摄像机；同时设置自动旋转补充
-    controls.addEventListener('start', function() {
-      controls.userInteracting = true;
-    });
-    controls.addEventListener('end', function() {
-      setTimeout(function() { controls.userInteracting = false; }, 2000);
-    });
-    camera.position.set(0,0,15);
-    controls.update();
-
-    // ----- 动画循环 -----
-    var angle = 0;
-    function animate() {
-      requestAnimationFrame(animate);
-      // 自动旋转（如果用户没有交互）
-      if(!controls.userInteracting) {
-        angle += 0.005;
-        var radius = camera.position.length();
-        var currentAngle = Math.atan2(camera.position.x, camera.position.z);
-        currentAngle += 0.005;
-        camera.position.x = radius * Math.sin(currentAngle);
-        camera.position.z = radius * Math.cos(currentAngle);
-        camera.lookAt(new THREE.Vector3(0,0,0));
-      }
-      // 行星沿轨道运动
-      angle += 0.01;
-      planet.position.x = 6 * Math.cos(angle);
-      planet.position.z = 6 * Math.sin(angle);
-      detectionBox.update();
-      // 渲染场景
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // ----- 响应窗口大小变化 -----
-    window.addEventListener('resize', function(){
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    /* ========= 占位代码，确保总行数超过400行 ========= */
-    for(var p=0; p<100; p++){
-      console.log("占位日志 " + (p+1) + "：用于填充代码行数以满足项目要求。");
-    }
-    /* ===================================================== */
-  </script>
-  <!-- End of script -->
-  <!-- 备注：以上代码包含多个占位注释和多处详细解释，确保总行数足够丰富，且运行效果满足要求。 -->
+    <script src="data.js"></script>
+    <script src="metrics.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
