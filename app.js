@@ -37,21 +37,15 @@ SceneModule.initScene = function() {
   document.getElementById("container").appendChild(SceneModule.renderer.domElement);
   
   // 加载更具科幻感的 Nebula 贴图作为背景
-  // app.js 修改后的纹理加载部分
-const textureLoader = new THREE.TextureLoader();
-textureLoader.setCrossOrigin('anonymous'); // 允许跨域
-
-textureLoader.load(
-  'textures/nebula.jpg', // 本地路径
-  (texture) => {
-    SceneModule.scene.background = texture;
-  },
-  undefined,
-  (err) => {
-    console.error("背景加载失败，使用备用颜色", err);
-    SceneModule.scene.background = new THREE.Color(0x000000);
-  }
-);
+  var textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/nebula.jpg',
+    function(texture) {
+      SceneModule.scene.background = texture;
+    },
+    undefined,
+    function(err) { console.error("背景贴图加载失败", err); }
+  );
 
   // 添加高质量的环境光和点光源
   var ambientLight = new THREE.AmbientLight(0x666666);
