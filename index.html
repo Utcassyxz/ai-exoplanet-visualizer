@@ -1,244 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Exoplanet Detector – Ultimate V5 Multi‑Page</title>
+  <meta charset="UTF-8">
+  <title>AI Exoplanet Visualizer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-    #tabs {
-      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-      z-index: 20; display: flex; gap: 8px;
-    }
-    #tabs button {
-      background: rgba(0,0,0,0.7); color: #47e3ff;
-      border: 1px solid #47e3ff; padding: 6px 12px;
-      cursor: pointer; font-size: 14px; border-radius: 4px;
-    }
-    .page {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: none;
-    }
-    .active { display: block; }
-    /* Visualization page */
-    #viz-page { }
-    #container { width: 100%; height: 100%; }
-    #lightcurve-panel {
-      position: absolute; top: 20px; right: 20px;
-      width: 320px; height: 200px;
-      background: rgba(0,0,0,0.7);
-      border: 1px solid #47e3ff; border-radius: 5px;
-      box-shadow: 0 0 15px rgba(71,227,255,0.5);
-      z-index: 10;
-    }
-    #controls {
-      position: absolute; bottom: 20px; left: 20px;
-      z-index: 10; display: flex; gap: 8px;
-      background: rgba(0,0,0,0.7); padding: 10px;
-      border: 1px solid #47e3ff; border-radius: 5px;
-    }
-    #controls button {
-      background: #001624; color: #47e3ff;
-      border: 1px solid #47e3ff; padding: 6px 12px;
-      cursor: pointer; font-size: 13px;
-    }
-    /* Data page */
-    #data-page { background: rgba(0,0,0,0.5); }
-    #data-table {
-      position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-      width: 600px; max-height: 70%; overflow-y: auto;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid #47e3ff; border-radius: 5px;
-      box-shadow: 0 0 15px rgba(71,227,255,0.5);
-      color: #fff; font-size: 14px; padding: 10px;
-    }
-    #data-table table { width: 100%; border-collapse: collapse; }
-    #data-table th, #data-table td {
-      border: 1px solid #47e3ff; padding: 4px; text-align: center;
-    }
-    /* Metrics page */
-    #metrics-page { }
-    #metrics-panel {
-      position: absolute; top: 60px; right: 20px;
-      width: 400px; max-height: 70%; overflow-y: auto;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid #47e3ff; border-radius: 5px;
-      box-shadow: 0 0 15px rgba(71,227,255,0.5);
-      color: #47e3ff; font-size: 12px; padding: 10px;
-    }
-    #metrics-panel table { width: 100%; border-collapse: collapse; }
-    #metrics-panel th, #metrics-panel td {
-      border: 1px solid #47e3ff; padding: 4px; text-align: center;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Tabs -->
   <div id="tabs">
-    <button onclick="showPage('viz')">Visualization</button>
-    <button onclick="showPage('data')">Data Table</button>
-    <button onclick="showPage('metrics')">Metrics</button>
+    <button data-page="viz">Visualization</button>
+    <button data-page="data">Data Table</button>
+    <button data-page="metrics">Metrics</button>
   </div>
-
-  <!-- Visualization Page -->
-  <div id="viz-page" class="page active">
-    <div id="container"></div>
-    <div id="lightcurve-panel"></div>
-    <div id="controls">
-      <button onclick="toggleTransit()">Toggle Transit</button>
+  <div id="pages">
+    <div id="viz-page" class="page active">
+      <div id="container"></div>
+      <div id="lightcurve-panel"></div>
+      <div id="controls">
+        <button id="toggle-transit">Toggle Transit</button>
+      </div>
+    </div>
+    <div id="data-page" class="page">
+      <div id="data-table"></div>
+    </div>
+    <div id="metrics-page" class="page">
+      <div id="metrics-panel"></div>
     </div>
   </div>
-
-  <!-- Data Table Page -->
-  <div id="data-page" class="page">
-    <div id="data-table"></div>
-  </div>
-
-  <!-- Metrics Page -->
-  <div id="metrics-page" class="page">
-    <div id="metrics-panel"></div>
-  </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script>
-    // --- Data from CSV (metrics_summary_PRESENT_PROJECT.csv) ---
-    const metricsData = [
-      {"Model":"Basic CNN","F1":"0.6668 (Fair)","ROC":"0.5000 (Poor)","Time":"397.66s (Slow)"},
-      {"Model":"Deep CNN","F1":"0.6668 (Fair)","ROC":"0.6457 (Fair)","Time":"917.22s (Slow)"},
-      {"Model":"Lightweight CNN","F1":"0.7418 (Good)","ROC":"0.8267 (Very Good)","Time":"1277.64s (Slow)"},
-      {"Model":"RNN","F1":"0.6668 (Fair)","ROC":"0.5063 (Poor)","Time":"630.59s (Slow)"},
-      {"Model":"RF","F1":"0.8052 (Very Good)","ROC":"0.8821 (Very Good)","Time":"219.21s (Fast)"},
-      {"Model":"BLS","F1":"0.6984 (Good)","ROC":"0.6932 (Fair)","Time":"104.55s (Fast)"}
-    ];
-
-    // --- True mean curves from generated_data_PRESENT_PROJECT.npz ---
-    const negMean = [/* ...100 values... */];
-    const posMean = [/* ...100 values... with transit dip... */];
-
-    // Page switching
-    function showPage(id) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(id + '-page').classList.add('active');
-      if (id === 'data') renderDataTable();
-      if (id === 'metrics') renderMetrics();
-    }
-
-    // --- Visualization Setup ---
-    const container = document.getElementById('container');
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    // Sci‑fi nebula background
-    new THREE.TextureLoader().load(
-      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/nebula.jpg',
-      tex => scene.background = tex
-    );
-    container.appendChild(renderer.domElement);
-
-    // OrbitControls for manual camera movement
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; controls.dampingFactor = 0.1;
-    controls.minDistance = 5; controls.maxDistance = 50;
-
-    // Lights
-    scene.add(new THREE.AmbientLight(0x888888));
-    const light = new THREE.PointLight(0xffffff,1.2);
-    light.position.set(10,10,10);
-    scene.add(light);
-
-    // Star + glow
-    const star = new THREE.Mesh(
-      new THREE.SphereGeometry(2,32,32),
-      new THREE.MeshBasicMaterial({ color:0xffdd88 })
-    );
-    scene.add(star);
-    const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(2.5,32,32),
-      new THREE.MeshBasicMaterial({ color:0xffaa44, transparent:true, opacity:0.2 })
-    );
-    scene.add(glow);
-
-    // Orbit + planet
-    const orbit = new THREE.Mesh(
-      new THREE.RingGeometry(6,6.05,128),
-      new THREE.MeshBasicMaterial({ color:0x47e3ff, side:THREE.DoubleSide })
-    );
-    orbit.rotation.x = Math.PI/2; scene.add(orbit);
-    const planet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5,32,32),
-      new THREE.MeshStandardMaterial({ color:0x3399ff })
-    );
-    scene.add(planet);
-
-    // Detection box
-    const box = new THREE.BoxHelper(planet,0x47e3ff);
-    scene.add(box);
-    box.visible = false;
-
-    camera.position.set(0,0,15);
-    controls.update();
-
-    let angle=0, transit=false;
-
-    function toggleTransit(){
-      transit = !transit; box.visible = transit; updateLightcurve();
-    }
-
-    function updateLightcurve(){
-      const x=Array.from({length:100},(_,i)=>i);
-      const y=transit?posMean:negMean;
-      Plotly.newPlot('lightcurve-panel',[{
-        x,y,type:'scatter',mode:'lines',
-        line:{color:'#47e3ff',width:2},
-        fill:'tozeroy',fillcolor:'rgba(71,227,255,0.1)'
-      }],{
-        title:{text:transit?'Transit Detected':'No Transit',font:{color:'#47e3ff'}},
-        paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
-        font:{color:'#47e3ff'},
-        xaxis:{title:'Time',gridcolor:'#1a3545'},
-        yaxis:{title:'Flux',gridcolor:'#1a3545',range:[0.75,1.05]}
-      });
-    }
-    updateLightcurve();
-
-    function renderDataTable(){
-      const data = transit?posMean:negMean;
-      let html = '<table><tr><th>Time</th><th>Flux</th></tr>';
-      for(let i=0;i<100;i++){
-        html += `<tr><td>${i}</td><td>${data[i].toFixed(4)}</td></tr>`;
-      }
-      html += '</table>';
-      document.getElementById('data-table').innerHTML = html;
-    }
-
-    function renderMetrics(){
-      let html = '<table><tr><th>Model</th><th>F1</th><th>ROC</th><th>Time</th></tr>';
-      metricsData.forEach(d=>{
-        html += `<tr><td>${d.Model}</td><td>${d.F1}</td><td>${d.ROC}</td><td>${d.Time}</td></tr>`;
-      });
-      html += '</table>';
-      document.getElementById('metrics-panel').innerHTML = html;
-    }
-
-    function animate(){
-      requestAnimationFrame(animate);
-      angle += 0.01;
-      planet.position.x = 6*Math.cos(angle);
-      planet.position.z = 6*Math.sin(angle);
-      star.rotation.y += 0.003; glow.rotation.y += 0.002;
-      controls.update();
-      renderer.render(scene,camera);
-    }
-    animate();
-
-    window.addEventListener('resize',()=>{
-      camera.aspect=window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth,window.innerHeight);
-    });
-  </script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="metrics.js"></script>
 </body>
 </html>
