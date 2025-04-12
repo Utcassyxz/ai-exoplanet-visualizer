@@ -1,30 +1,156 @@
 <!DOCTYPE html>
-<!-- This is a simplified version to fit within the code block. Full content will be restored later. -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exoplanet Detection System</title>
+  <meta charset="UTF-8" />
+  <title>AI Exoplanet Detector - Camera Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; background: black; }
-    #container { position: relative; width: 100%; height: 100vh; }
-    .subtitle { position: absolute; color: #47e3ff; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px rgba(71, 227, 255, 0.7); pointer-events: none; }
-    #transit-detected { top: 20px; left: 50px; font-size: 32px; }
-    #ai-prediction { bottom: 30px; left: 50px; }
-    #ui-panel { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 300px; pointer-events: none; }
-    #light-curve { width: 100%; height: 200px; background-color: rgba(0, 18, 36, 0.7); border: 2px solid #47e3ff; border-radius: 5px; box-shadow: 0 0 15px rgba(71, 227, 255, 0.5); }
-    #controls { position: absolute; bottom: 20px; right: 20px; background-color: rgba(0, 18, 36, 0.7); padding: 10px; border-radius: 5px; border: 1px solid #47e3ff; color: #47e3ff; }
+    html, body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
+    #container { width: 100vw; height: 100vh; position: relative; }
+    #lightcurve-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 320px;
+      height: 200px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid #47e3ff;
+      border-radius: 5px;
+      z-index: 10;
+    }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #47e3ff;
+    }
+    button {
+      background: #001624;
+      color: #47e3ff;
+      border: 1px solid #47e3ff;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div id="container">
-    <div id="transit-detected" class="subtitle">TRANSIT DETECTED</div>
-    <div id="ai-prediction" class="subtitle">AI MODEL LOCK-ON | FLUX DROP</div>
-    <div id="ui-panel"><div id="light-curve"></div></div>
-    <div id="controls">Mouse: Rotate | Scroll: Zoom | Right-click: Pan</div>
+  <div id="container"></div>
+  <div id="lightcurve-panel"></div>
+  <div id="controls">
+    <button onclick="setView('front')">Front</button>
+    <button onclick="setView('top')">Top</button>
+    <button onclick="setView('side')">Side</button>
+    <button onclick="toggleTransit()">Toggle Transit</button>
   </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.16.1/plotly.min.js"></script>
-  <script src="main.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script>
+    const container = document.getElementById('container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000819);
+    container.appendChild(renderer.domElement);
+
+    const loader = new THREE.TextureLoader();
+    loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/space.jpg', texture => {
+      scene.background = texture;
+    });
+
+    const ambientLight = new THREE.AmbientLight(0x888888);
+    scene.add(ambientLight);
+    const light = new THREE.PointLight(0xffffff, 1.2);
+    light.position.set(10, 10, 10);
+    scene.add(light);
+
+    const starGeom = new THREE.SphereGeometry(2, 32, 32);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+    const star = new THREE.Mesh(starGeom, starMat);
+    scene.add(star);
+
+    const glowGeom = new THREE.SphereGeometry(2.5, 32, 32);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.2 });
+    const glow = new THREE.Mesh(glowGeom, glowMat);
+    scene.add(glow);
+
+    const orbitGeom = new THREE.RingGeometry(6, 6.05, 64);
+    const orbitMat = new THREE.MeshBasicMaterial({ color: 0x47e3ff, side: THREE.DoubleSide });
+    const orbit = new THREE.Mesh(orbitGeom, orbitMat);
+    orbit.rotation.x = Math.PI / 2;
+    scene.add(orbit);
+
+    const planetGeom = new THREE.SphereGeometry(0.5, 32, 32);
+    const planetMat = new THREE.MeshStandardMaterial({ color: 0x3399ff });
+    const planet = new THREE.Mesh(planetGeom, planetMat);
+    scene.add(planet);
+
+    const detectionBox = new THREE.BoxHelper(planet, 0x47e3ff);
+    scene.add(detectionBox);
+    detectionBox.visible = false;
+
+    let angle = 0;
+    let transitDetected = false;
+
+    function toggleTransit() {
+      transitDetected = !transitDetected;
+      detectionBox.visible = transitDetected;
+      updateLightcurve();
+    }
+
+    function updateLightcurve() {
+      const x = Array.from({ length: 100 }, (_, i) => i);
+      const y = x.map(i => {
+        if (transitDetected && i > 45 && i < 55) return 1.0 - 0.2 + Math.random() * 0.01;
+        return 1.0 + (Math.random() * 0.01);
+      });
+
+      Plotly.newPlot("lightcurve-panel", [{
+        x, y, type: 'scatter', mode: 'lines',
+        line: { color: '#47e3ff', width: 2 },
+        fill: 'tozeroy', fillcolor: 'rgba(71,227,255,0.1)'
+      }], {
+        title: { text: transitDetected ? "CNN Detected Transit" : "No Transit", font: { color: '#47e3ff' } },
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#47e3ff' },
+        xaxis: { title: "Time", gridcolor: '#1a3545' },
+        yaxis: { title: "Flux", gridcolor: '#1a3545', range: [0.75, 1.05] }
+      });
+    }
+
+    updateLightcurve();
+
+    function setView(mode) {
+      switch (mode) {
+        case 'front':
+          camera.position.set(0, 0, 15); break;
+        case 'top':
+          camera.position.set(0, 15, 0); break;
+        case 'side':
+          camera.position.set(15, 0, 0); break;
+      }
+      camera.lookAt(0, 0, 0);
+    }
+
+    setView('front');
+
+    function animate() {
+      requestAnimationFrame(animate);
+      angle += 0.01;
+      planet.position.x = 6 * Math.cos(angle);
+      planet.position.z = 6 * Math.sin(angle);
+      detectionBox.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
 </body>
 </html>
