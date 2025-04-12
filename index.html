@@ -1,38 +1,193 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Exoplanet Visualizer - PRO EDITION</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <!-- 后期处理依赖 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <title>Exoplanet Visualizer Ultra</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        #container { 
+            width: 100vw; 
+            height: 100vh; 
+            position: relative;
+        }
+        .hud {
+            position: absolute;
+            padding: 15px;
+            background: rgba(0,32,64,0.9);
+            border: 1px solid #47e3ff;
+            border-radius: 8px;
+            color: #47e3ff;
+            backdrop-filter: blur(5px);
+        }
+        #controls {
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #001624;
+            color: #47e3ff;
+            border: 1px solid #47e3ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #002940;
+            box-shadow: 0 0 10px #47e3ff;
+        }
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            border: 3px solid #47e3ff33;
+            border-top: 3px solid #47e3ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%,-50%) rotate(0deg); }
+            100% { transform: translate(-50%,-50%) rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="loader"></div>
     <div id="container"></div>
-    <div id="lightcurve-panel"></div>
-    
-    <!-- 控制面板 -->
-    <div id="controls-panel">
-        <button onclick="setView('front')">🛰 Front View</button>
-        <button onclick="setView('top')">🛸 Top View</button>
-        <button onclick="setView('side')">🌌 Side View</button>
-        <button onclick="toggleScenario()">🔄 Toggle Transit</button>
+    <div class="hud" id="controls">
+        <button onclick="toggleTransit()">Toggle Transit</button>
+        <button onclick="toggleView()">Switch View</button>
     </div>
 
-    <!-- HUD 界面 -->
-    <div class="hud top-left" id="hud-status"></div>
-    <div class="hud bottom-right" id="hud-explanation"></div>
+    <!-- Three.js 依赖 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
-    <script src="data.js"></script>
-    <script src="metrics.js"></script>
-    <script src="app.js"></script>
+    <script>
+        // 初始化核心组件
+        let scene, camera, renderer, composer, controls;
+        let transitActive = false;
+        let currentView = 'default';
+
+        function init() {
+            // 1. 场景基础设置
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // 2. 后期处理
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(new THREE.RenderPass(scene, camera));
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.2, 0.4, 0.85
+            );
+            composer.addPass(bloomPass);
+
+            // 3. 创建星系
+            createStarSystem();
+            setupLighting();
+            initControls();
+            
+            // 4. 启动动画
+            animate();
+            document.querySelector('.loader').style.display = 'none';
+        }
+
+        function createStarSystem() {
+            // 恒星
+            const star = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0xffdd88 })
+            );
+            scene.add(star);
+
+            // 行星轨道
+            const orbit = new THREE.Mesh(
+                new THREE.RingGeometry(6, 6.1, 64),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0x47e3ff, 
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.3
+                })
+            );
+            orbit.rotation.x = Math.PI/2;
+            scene.add(orbit);
+
+            // 行星
+            const planet = new THREE.Mesh(
+                new THREE.SphereGeometry(0.8, 32, 32),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x3399ff,
+                    metalness: 0.3,
+                    roughness: 0.2
+                })
+            );
+            planet.position.set(6, 0, 0);
+            scene.add(planet);
+
+            // 初始化摄像机
+            camera.position.set(0, 10, 15);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function setupLighting() {
+            scene.add(new THREE.AmbientLight(0x404040));
+            const light = new THREE.PointLight(0xffffff, 1.5);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+        }
+
+        function initControls() {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            composer.render();
+        }
+
+        // 交互功能
+        window.toggleTransit = () => {
+            transitActive = !transitActive;
+            scene.traverse(obj => {
+                if (obj.name === 'detectionBox') obj.visible = transitActive;
+            });
+        }
+
+        window.toggleView = () => {
+            currentView = currentView === 'default' ? 'top' : 'default';
+            camera.position.set(
+                currentView === 'top' ? 0 : 0,
+                currentView === 'top' ? 20 : 10,
+                currentView === 'top' ? 0 : 15
+            );
+            camera.lookAt(0, 0, 0);
+        }
+
+        // 启动应用
+        window.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
